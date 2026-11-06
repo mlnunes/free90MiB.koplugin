@@ -1,36 +1,36 @@
 # Free 90 MiB (KOReader plugin)
 
-Plugin KOReader para Kindle que ajusta o espaço livre em `/mnt/us` usando somente arquivos próprios dentro de:
+A KOReader plugin for Kindle that manages free space on `/mnt/us` using only its own filler files in:
 
 ```text
 /mnt/us/koreader/free90MiB/
 ```
 
-Os arquivos gerenciados são `trash00000.bin` até `trash99999.bin`. Todos, exceto o de maior número, têm 20 MiB; o último pode ser parcial. Arquivos com outros nomes não são alterados.
+Managed files are named `trash00000.bin` through `trash99999.bin`. Every file except the highest-numbered one is 20 MiB; the last file may be smaller. Files with other names are not modified.
 
-## Instalação
+## Installation
 
-Copie o conteúdo desta pasta para uma pasta chamada `free90MiB.koplugin` dentro de `koreader/plugins/`. No Kindle, o caminho ficará normalmente assim:
+Copy the contents of this directory into a folder named `free90MiB.koplugin` inside `koreader/plugins/`. On a Kindle, the path will typically be:
 
 ```text
 /mnt/us/koreader/plugins/free90MiB.koplugin/
 ```
 
-Reinicie o KOReader e habilite o plugin, se necessário. A pasta de dados é criada quando o plugin é carregado. O carregamento **não** preenche o armazenamento automaticamente.
+Restart KOReader and enable the plugin if necessary. The data directory is created when the plugin is loaded. Loading the plugin **does not** fill the storage automatically.
 
-## Uso
+## Usage
 
-No menu do KOReader, escolha **Free 90 MiB**. A tela permite:
+In the KOReader menu, select **Free 90 MiB**. The screen lets you:
 
-- normalizar o espaço livre para a faixa de 70–90 MiB;
-- solicitar a liberação de espaço, em MiB;
-- acompanhar o andamento numa barra de progresso e cancelar entre etapas de gravação/remoção.
+- normalize free space to the 70–90 MiB range;
+- request a specific amount of space to be released, in MiB;
+- follow the operation with a progress bar and cancel between write or removal steps.
 
-A normalização cria enchimento quando há mais de 90 MiB livres e remove arquivos do plugin quando há menos de 70 MiB livres. Se não houver arquivos próprios suficientes para recuperar a faixa, a operação falha sem apagar dados de outros diretórios.
+Normalization creates filler files when more than 90 MiB is free and removes the plugin's files when less than 70 MiB is free. If there are not enough plugin-owned files to restore the range, the operation fails without deleting data from other directories.
 
-## API para outros plugins
+## API for other plugins
 
-Após o carregamento dos plugins pelo KOReader, outro plugin pode carregar o módulo compartilhado:
+After KOReader has loaded its plugins, another plugin can load the shared module:
 
 ```lua
 function OtherPlugin:onNeedSpace()
@@ -43,36 +43,36 @@ function OtherPlugin:onNeedSpace()
         end,
         function(success, result)
             if success then
-                -- Faça aqui a operação que precisa do espaço liberado.
-                -- Chame Free90MiB.reconcile(...) depois para voltar à faixa.
+                -- Perform the operation that needs the released space here.
+                -- Call Free90MiB.reconcile(...) afterward to restore the range.
             end
         end
     )
     if not handle then
-        -- err explica por que a operação não começou.
+        -- err explains why the operation could not be started.
     end
 end
 ```
 
-Funções exportadas:
+Exported functions:
 
-- `get_status()` — retorna `free_bytes`, `managed_bytes` e os arquivos gerenciados;
-- `release_space(bytes, on_progress, on_done)` — remove arquivos de enchimento até liberar pelo menos a quantidade pedida;
-- `reconcile(on_progress, on_done)` — ajusta para 70–90 MiB livres.
+- `get_status()` — returns `free_bytes`, `managed_bytes`, and the managed files;
+- `release_space(bytes, on_progress, on_done)` — removes filler files until at least the requested amount has been released;
+- `reconcile(on_progress, on_done)` — adjusts free space to the 70–90 MiB range.
 
-As operações são assíncronas e serializadas. `on_done(success, result)` recebe o resultado; `result.changed_bytes` indica a variação líquida observada no espaço livre. Como a liberação remove arquivos inteiros, pode liberar mais que o solicitado. O objeto retornado oferece `:cancel()`; alterações já concluídas permanecem e um arquivo parcial válido pode ficar como o último da série.
+Operations are asynchronous and serialized. `on_done(success, result)` receives the result; `result.changed_bytes` indicates the net observed change in free space. Since space is released by removing whole files, the amount released may exceed the request. The returned object provides `:cancel()`; completed file changes are retained, and a valid partial file may remain as the last file in the series.
 
-## Unidades e limites
+## Units and limitations
 
-MiB é binário: 1 MiB = 1.048.576 bytes. O espaço medido pode variar por blocos de alocação do sistema de arquivos ou por gravações simultâneas de outros processos. O plugin só modifica seus arquivos de enchimento; não pode garantir a faixa se outros dados consumirem o espaço e não houver arquivos próprios suficientes para remover.
+MiB is binary: 1 MiB = 1,048,576 bytes. The measured free space may vary because of filesystem allocation units or writes by other processes. The plugin modifies only its filler files; it cannot guarantee the range if other data consumes space and there are not enough plugin-owned files to remove.
 
-## Testes locais
+## Local tests
 
-Com LuaJIT instalado:
+With LuaJIT installed, run:
 
 ```sh
 luajit tests/test_manager.lua
 luajit tests/test_api.lua
 ```
 
-Os testes usam um armazenamento falso e não executam `dd` nem modificam `/mnt/us`.
+The tests use a fake storage backend and do not run `dd` or modify `/mnt/us`.
